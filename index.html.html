@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard TI — Prefeitura de Ibirité</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0a0d14;
+    --surface: #111520;
+    --surface2: #161b2e;
+    --border: #1e2a42;
+    --accent: #1a6cf6;
+    --accent2: #00d4aa;
+    --accent3: #f59e0b;
+    --danger: #ef4444;
+    --warn: #f59e0b;
+    --success: #10b981;
+    --text: #e2e8f0;
+    --text-dim: #64748b;
+    --text-muted: #334155;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Sora', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* TOPBAR */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 28px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+  .topbar-left { display: flex; align-items: center; gap: 16px; }
+  .logo-badge {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, var(--accent), #0ea5e9);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 0 20px rgba(26,108,246,0.4);
+  }
+  .topbar-title { font-size: 15px; font-weight: 600; letter-spacing: 0.3px; }
+  .topbar-subtitle { font-size: 11px; color: var(--text-dim); font-weight: 400; }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+  .live-badge {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--success);
+    font-family: 'JetBrains Mono', monospace;
+    background: rgba(16,185,129,0.08);
+    border: 1px solid rgba(16,185,129,0.2);
+    padding: 4px 10px; border-radius: 20px;
+  }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .topbar-date { font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+
+  /* SIDEBAR */
+  .layout { display: flex; min-height: calc(100vh - 64px); }
+  .sidebar {
+    width: 220px; min-width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px 0;
+    display: flex; flex-direction: column;
+  }
+  .nav-section { margin-bottom: 8px; }
+  .nav-label {
+    font-size: 9px; font-weight: 700; letter-spacing: 1.5px;
+    color: var(--text-muted); text-transform: uppercase;
+    padding: 8px 20px 4px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 20px; cursor: pointer;
+    font-size: 13px; font-weight: 500; color: var(--text-dim);
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+  }
+  .nav-item:hover { background: rgba(26,108,246,0.06); color: var(--text); }
+  .nav-item.active {
+    background: rgba(26,108,246,0.12);
+    color: var(--accent);
+    border-left-color: var(--accent);
+  }
+  .nav-item .icon { font-size: 15px; width: 20px; text-align: center; }
+  .nav-badge {
+    margin-left: auto; background: var(--danger);
+    color: white; font-size: 9px; font-weight: 700;
+    padding: 2px 6px; border-radius: 10px;
+  }
+
+  /* MAIN */
+  .main { flex: 1; padding: 24px 28px; overflow-y: auto; }
+
+  /* PAGE */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  .page-header { margin-bottom: 24px; }
+  .page-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .page-desc { font-size: 12px; color: var(--text-dim); }
+
+  /* KPI CARDS */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .kpi:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .kpi-glow {
+    position: absolute; top: 0; right: 0;
+    width: 80px; height: 80px; border-radius: 50%;
+    opacity: 0.07; transform: translate(20px, -20px);
+  }
+  .kpi-label { font-size: 10px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px; }
+  .kpi-value { font-size: 28px; font-weight: 700; line-height: 1; margin-bottom: 6px; font-family: 'JetBrains Mono', monospace; }
+  .kpi-sub { font-size: 11px; color: var(--text-dim); }
+  .kpi-blue .kpi-glow { background: var(--accent); }
+  .kpi-blue .kpi-value { color: #60a5fa; }
+  .kpi-green .kpi-glow { background: var(--success); }
+  .kpi-green .kpi-value { color: #34d399; }
+  .kpi-red .kpi-glow { background: var(--danger); }
+  .kpi-red .kpi-value { color: #f87171; }
+  .kpi-yellow .kpi-glow { background: var(--warn); }
+  .kpi-yellow .kpi-value { color: #fbbf24; }
+  .kpi-cyan .kpi-glow { background: var(--accent2); }
+  .kpi-cyan .kpi-value { color: #2dd4bf; }
+
+  /* CHARTS GRID */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+  }
+  .card-title {
+    font-size: 12px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--text-dim);
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-title span { font-size: 14px; }
+
+  .col-8 { grid-column: span 8; }
+  .col-6 { grid-column: span 6; }
+  .col-4 { grid-column: span 4; }
+  .col-5 { grid-column: span 5; }
+  .col-7 { grid-column: span 7; }
+  .col-12 { grid-column: span 12; }
+
+  canvas { max-height: 260px; }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead th {
+    text-align: left; padding: 10px 14px;
+    font-size: 9px; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody tr { border-bottom: 1px solid rgba(30,42,66,0.5); transition: background 0.1s; cursor: pointer; }
+  tbody tr:hover { background: rgba(26,108,246,0.05); }
+  tbody td { padding: 10px 14px; white-space: nowrap; overflow: hidden; max-width: 200px; text-overflow: ellipsis; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 8px; border-radius: 20px;
+    font-size: 10px; font-weight: 600;
+  }
+  .badge-green { background: rgba(16,185,129,0.12); color: #34d399; }
+  .badge-red { background: rgba(239,68,68,0.12); color: #f87171; }
+  .badge-yellow { background: rgba(245,158,11,0.12); color: #fbbf24; }
+  .badge-blue { background: rgba(26,108,246,0.12); color: #60a5fa; }
+  .badge-gray { background: rgba(100,116,139,0.12); color: #94a3b8; }
+
+  /* FILTERS */
+  .filters { display: flex; gap: 10px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+  .filter-btn {
+    padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-dim); font-size: 11px;
+    font-family: 'Sora', sans-serif; cursor: pointer; transition: all 0.15s;
+  }
+  .filter-btn:hover, .filter-btn.active {
+    background: rgba(26,108,246,0.12); border-color: var(--accent); color: var(--accent);
+  }
+  .filter-select {
+    padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface2); color: var(--text); font-size: 11px;
+    font-family: 'Sora', sans-serif; cursor: pointer;
+  }
+  .search-input {
+    padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface2); color: var(--text); font-size: 11px;
+    font-family: 'Sora', sans-serif; outline: none; width: 220px;
+  }
+  .search-input:focus { border-color: var(--accent); }
+
+  /* DONUT CENTER */
+  .donut-wrap { position: relative; display: flex; align-items: center; justify-content: center; }
+  .donut-center {
+    position: absolute; text-align: center; pointer-events: none;
+  }
+  .donut-center .val { font-size: 22px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+  .donut-center .lbl { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.8px; }
+
+  /* LEGEND */
+  .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-dim); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* PROGRESS BAR */
+  .prog-list { display: flex; flex-direction: column; gap: 12px; }
+  .prog-item { }
+  .prog-header { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; }
+  .prog-name { font-weight: 500; }
+  .prog-val { color: var(--text-dim); font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+  .prog-bar { height: 5px; background: var(--border); border-radius: 10px; overflow: hidden; }
+  .prog-fill { height: 100%; border-radius: 10px; transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
+
+  /* TECH TABLE */
+  .tech-table { width: 100%; }
+  .tech-row {
+    display: grid; grid-template-columns: 1fr 80px 80px 80px 80px 80px;
+    align-items: center; padding: 10px 14px;
+    border-bottom: 1px solid rgba(30,42,66,0.5);
+    font-size: 12px; gap: 8px;
+  }
+  .tech-row:first-child {
+    font-size: 9px; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 10px;
+  }
+  .score-pill {
+    display: inline-block; padding: 2px 8px; border-radius: 20px;
+    font-size: 10px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+  }
+  .score-8 { background: rgba(16,185,129,0.12); color: #34d399; }
+  .score-7 { background: rgba(26,108,246,0.12); color: #60a5fa; }
+  .score-6 { background: rgba(245,158,11,0.12); color: #fbbf24; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+  /* RESPONSIVE */
+  @media (max-width: 1024px) {
+    .col-8 { grid-column: span 12; }
+    .col-4 { grid-column: span 12; }
+    .col-6 { grid-column: span 12; }
+    .sidebar { width: 60px; min-width: 60px; }
+    .nav-item span:not(.icon) { display: none; }
+    .nav-label { display: none; }
+    .nav-badge { display: none; }
+    .nav-item { justify-content: center; padding: 12px; }
+  }
+
+  .paginação { display: flex; gap: 8px; align-items: center; margin-top: 14px; justify-content: flex-end; }
+  .pag-btn {
+    padding: 4px 10px; border: 1px solid var(--border); background: transparent;
+    color: var(--text-dim); border-radius: 6px; font-size: 11px;
+    cursor: pointer; font-family: 'Sora', sans-serif;
+  }
+  .pag-btn:hover, .pag-btn.active { background: rgba(26,108,246,0.12); border-color: var(--accent); color: var(--accent); }
+  .pag-info { font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+
+  .section-divider { height: 1px; background: var(--border); margin: 24px 0; }
+
+  .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .info-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .info-box-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 4px; }
+  .info-box-val { font-size: 14px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo-badge">🏛️</div>
+    <div>
+      <div class="topbar-title">Dashboard TI — Prefeitura de Ibirité</div>
+      <div class="topbar-subtitle">Departamento de Tecnologia da Informação · Gestão de Chamados</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="live-badge"><div class="live-dot"></div> AO VIVO</div>
+    <div class="topbar-date" id="clock">--</div>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="nav-section">
+      <div class="nav-label">Principal</div>
+      <div class="nav-item active" onclick="navigate('overview')">
+        <span class="icon">📊</span><span>Visão Geral</span>
+      </div>
+      <div class="nav-item" onclick="navigate('chamados')">
+        <span class="icon">🎫</span><span>Chamados</span>
+        <span class="nav-badge">46</span>
+      </div>
+      <div class="nav-item" onclick="navigate('tecnicos')">
+        <span class="icon">👤</span><span>Técnicos</span>
+      </div>
+      <div class="nav-item" onclick="navigate('secretarias')">
+        <span class="icon">🏢</span><span>Secretarias</span>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Análises</div>
+      <div class="nav-item" onclick="navigate('sla')">
+        <span class="icon">⏱️</span><span>SLA</span>
+      </div>
+      <div class="nav-item" onclick="navigate('categorias')">
+        <span class="icon">🗂️</span><span>Categorias</span>
+      </div>
+      <div class="nav-item" onclick="navigate('score')">
+        <span class="icon">🏆</span><span>Score & Prod.</span>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Config.</div>
+      <div class="nav-item" onclick="navigate('formulas')">
+        <span class="icon">📐</span><span>Fórmulas</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ===== PAGE: OVERVIEW ===== -->
+    <div class="page active" id="page-overview">
+      <div class="page-header">
+        <div class="page-title">Visão Geral</div>
+        <div class="page-desc">Resumo executivo de todos os chamados · Dados desde Nov/2022 até Mai/2026</div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi kpi-blue">
+          <div class="kpi-glow"></div>
+          <div class="kpi-label">Total Chamados</div>
+          <div class="kpi-value">7.563</div>
+          <div class="kpi-sub">desde Nov/2022</div>
+        </div>
+        <div class="kpi kpi-green">
+          <div class="kpi-glow"></div>
+          <div class="kpi-label">Concluídos</div>
+          <div class="kpi-value">4.499</div>
+          <div class="kpi-sub">59,5% do total</div>
+        </div>
+        <div class="kpi kpi-yellow">
+          <div class="kpi-glow"></div>
+          <div class="kpi-label">Atrasados</div>
+          <div class="kpi-value">3.018</div>
+          <div class="kpi-sub">Fora do SLA</div>
+        </div>
+        <div class="kpi kpi-red">
+          <div class="kpi-glow"></div>
+          <div class="kpi-label">Em Aberto</div>
+          <div class="kpi-value">46</div>
+          <div class="kpi-sub">Requer ação</div>
+        </div>
+        <div class="kpi kpi-cyan">
+          <div class="kpi-glow"></div>
+          <div class="kpi-label">Score Médio</div>
+          <div class="kpi-value">7,2</div>
+          <div class="kpi-sub">de 10 pontos</div>
+        </div>
+      </div>
+
+      <div class="charts-grid">
+        <!-- Volume mensal -->
+        <div class="card col-8">
+          <div class="card-title"><span>📈</span> Volume de Chamados — Últimos 24 Meses</div>
+          <canvas id="chartVolume"></canvas>
+        </div>
+        <!-- Status donut -->
+        <div class="card col-4">
+          <div class="card-title"><span>🔵</span> Status Operacional</div>
+          <div class="donut-wrap">
+            <canvas id="chartStatus" style="max-height:200px; max-width:200px;"></canvas>
+            <div class="donut-center">
+              <div class="val" style="color:#34d399">59%</div>
+              <div class="lbl">Concluídos</div>
+            </div>
+          </div>
+          <div class="legend" style="justify-content:center; margin-top:16px;">
+            <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div>Concluído (4.499)</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>Atrasado (3.018)</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Em Aberto (46)</div>
+          </div>
+        </div>
+
+        <!-- SLA mensal -->
+        <div class="card col-8">
+          <div class="card-title"><span>⏱️</span> SLA — Dentro vs Fora (últimos 12 meses)</div>
+          <canvas id="chartSLA"></canvas>
+        </div>
+        <!-- Prioridade -->
+        <div class="card col-4">
+          <div class="card-title"><span>🚦</span> Prioridade</div>
+          <div class="donut-wrap">
+            <canvas id="chartPrioridade" style="max-height:200px; max-width:200px;"></canvas>
+          </div>
+          <div class="legend" style="justify-content:center; margin-top:16px;">
+            <div class="legend-item"><div class="legend-dot" style="background:#64748b"></div>Baixa (7.535)</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>Alta (21)</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Normal (7)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Secretarias + Top Categorias -->
+      <div class="charts-grid">
+        <div class="card col-6">
+          <div class="card-title"><span>🏢</span> Chamados por Secretaria</div>
+          <canvas id="chartSecretaria"></canvas>
+        </div>
+        <div class="card col-6">
+          <div class="card-title"><span>🗂️</span> Top 10 Categorias</div>
+          <canvas id="chartCategoria"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PAGE: CHAMADOS ===== -->
+    <div class="page" id="page-chamados">
+      <div class="page-header">
+        <div class="page-title">Gestão de Chamados</div>
+        <div class="page-desc">50 chamados mais recentes · Total: 7.563 registros</div>
+      </div>
+
+      <div class="filters">
+        <input class="search-input" type="text" placeholder="🔍 Buscar assunto, secretaria..." id="searchInput" oninput="filterTable()">
+        <select class="filter-select" id="filterStatus" onchange="filterTable()">
+          <option value="">Todos os status</option>
+          <option value="Finalizada">✅ Finalizada</option>
+          <option value="Em atendimento">🔄 Em atendimento</option>
+          <option value="Aberto">🔴 Aberto</option>
+        </select>
+        <select class="filter-select" id="filterTecnico" onchange="filterTable()">
+          <option value="">Todos os técnicos</option>
+          <option value="Filipe">Filipe</option>
+          <option value="Cauã">Cauã</option>
+          <option value="Igor">Igor</option>
+          <option value="Pedro">Pedro</option>
+          <option value="Lucas">Lucas</option>
+          <option value="Luis">Luis</option>
+          <option value="Vicentina">Vicentina</option>
+        </select>
+        <select class="filter-select" id="filterSLA" onchange="filterTable()">
+          <option value="">SLA (todos)</option>
+          <option value="Dentro SLA">✅ Dentro SLA</option>
+          <option value="Fora SLA">❌ Fora SLA</option>
+        </select>
+      </div>
+
+      <div class="card col-12">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Protocolo</th>
+                <th>Assunto</th>
+                <th>Secretaria</th>
+                <th>Técnico</th>
+                <th>Categoria</th>
+                <th>Prioridade</th>
+                <th>Status</th>
+                <th>SLA</th>
+                <th>Score</th>
+                <th>Operacional</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <div class="paginação">
+          <span class="pag-info" id="tableInfo">—</span>
+          <button class="pag-btn" onclick="prevPage()">← Ant.</button>
+          <button class="pag-btn" onclick="nextPage()">Próx. →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PAGE: TÉCNICOS ===== -->
+    <div class="page" id="page-tecnicos">
+      <div class="page-header">
+        <div class="page-title">Desempenho por Técnico</div>
+        <div class="page-desc">Análise individual de produtividade, SLA e score</div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi kpi-blue"><div class="kpi-glow"></div><div class="kpi-label">Total Técnicos</div><div class="kpi-value">7</div><div class="kpi-sub">ativos</div></div>
+        <div class="kpi kpi-green"><div class="kpi-glow"></div><div class="kpi-label">Maior Volume</div><div class="kpi-value">Filipe</div><div class="kpi-sub">2.252 chamados</div></div>
+        <div class="kpi kpi-cyan"><div class="kpi-glow"></div><div class="kpi-label">Maior Score</div><div class="kpi-value">Cauã</div><div class="kpi-sub">Score médio 7,24</div></div>
+        <div class="kpi kpi-yellow"><div class="kpi-glow"></div><div class="kpi-label">Melhor SLA%</div><div class="kpi-value">Cauã</div><div class="kpi-sub">61,7% dentro SLA</div></div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="card col-8">
+          <div class="card-title"><span>📊</span> Chamados por Técnico</div>
+          <canvas id="chartTecnicoBar"></canvas>
+        </div>
+        <div class="card col-4">
+          <div class="card-title"><span>🍩</span> Distribuição</div>
+          <div class="donut-wrap">
+            <canvas id="chartTecnicoDonut" style="max-height:200px; max-width:200px;"></canvas>
+          </div>
+        </div>
+        <div class="card col-12">
+          <div class="card-title"><span>🏆</span> Ranking Completo de Técnicos</div>
+          <div class="tech-table">
+            <div class="tech-row">
+              <span>Técnico</span><span>Total</span><span>Dentro SLA</span><span>Fora SLA</span><span>% SLA</span><span>Score Méd.</span>
+            </div>
+            <div class="tech-row"><span>Filipe Cardoso</span><span>2.252</span><span style="color:#34d399">1.333</span><span style="color:#f87171">910</span><span>59,2%</span><span><em class="score-pill score-7">7,19</em></span></div>
+            <div class="tech-row"><span>Cauã</span><span>2.243</span><span style="color:#34d399">1.384</span><span style="color:#f87171">847</span><span>61,7%</span><span><em class="score-pill score-7">7,24</em></span></div>
+            <div class="tech-row"><span>Igor</span><span>1.195</span><span style="color:#34d399">687</span><span style="color:#f87171">503</span><span>57,5%</span><span><em class="score-pill score-7">7,16</em></span></div>
+            <div class="tech-row"><span>Pedro</span><span>759</span><span style="color:#34d399">448</span><span style="color:#f87171">311</span><span>59,0%</span><span><em class="score-pill score-7">7,18</em></span></div>
+            <div class="tech-row"><span>Vicentina M. Oliveira</span><span>379</span><span style="color:#34d399">226</span><span style="color:#f87171">150</span><span>59,6%</span><span><em class="score-pill score-7">7,20</em></span></div>
+            <div class="tech-row"><span>Luis</span><span>376</span><span style="color:#34d399">215</span><span style="color:#f87171">159</span><span>57,2%</span><span><em class="score-pill score-7">7,15</em></span></div>
+            <div class="tech-row"><span>Lucas</span><span>348</span><span style="color:#34d399">206</span><span style="color:#f87171">138</span><span>59,2%</span><span><em class="score-pill score-7">7,18</em></span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Redistribuição -->
+      <div class="card col-12" style="margin-top:0">
+        <div class="card-title"><span>⚖️</span> Redistribuição de Chamados (Meta vs Real)</div>
+        <canvas id="chartRedistribuicao" style="max-height:200px;"></canvas>
+      </div>
+    </div>
+
+    <!-- ===== PAGE: SECRETARIAS ===== -->
+    <div class="page" id="page-secretarias">
+      <div class="page-header">
+        <div class="page-title">Chamados por Secretaria</div>
+        <div class="page-desc">Distribuição normalizada de demandas por órgão</div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi kpi-blue"><div class="kpi-glow"></div><div class="kpi-label">Maior Demanda</div><div class="kpi-value">Plan.</div><div class="kpi-sub">4.270 chamados (56,5%)</div></div>
+        <div class="kpi kpi-green"><div class="kpi-glow"></div><div class="kpi-label">2ª Maior</div><div class="kpi-value">Saúde</div><div class="kpi-sub">647 chamados (8,6%)</div></div>
+        <div class="kpi kpi-yellow"><div class="kpi-glow"></div><div class="kpi-label">Total Secretarias</div><div class="kpi-value">13</div><div class="kpi-sub">órgãos atendidos</div></div>
+        <div class="kpi kpi-red"><div class="kpi-glow"></div><div class="kpi-label">Menor Demanda</div><div class="kpi-value">PROGER</div><div class="kpi-sub">17 chamados (0,2%)</div></div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="card col-7">
+          <div class="card-title"><span>📊</span> Volume por Secretaria</div>
+          <canvas id="chartSecretariaBar" style="max-height:300px;"></canvas>
+        </div>
+        <div class="card col-5">
+          <div class="card-title"><span>🍩</span> Participação Percentual</div>
+          <canvas id="chartSecretariaPie" style="max-height:300px;"></canvas>
+        </div>
+        <div class="card col-12">
+          <div class="card-title"><span>📋</span> Tabela Detalhada</div>
+          <div class="prog-list">
+            <div style="display:grid;grid-template-columns:180px 1fr 80px 80px;gap:12px;align-items:center;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);padding-bottom:8px;border-bottom:1px solid var(--border)">
+              <span>Secretaria</span><span>Distribuição</span><span>Chamados</span><span>% Total</span>
+            </div>
+            <div id="secretariaList"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PAGE: SLA ===== -->
+    <div class="page" id="page-sla">
+      <div class="page-header">
+        <div class="page-title">Análise de SLA</div>
+        <div class="page-desc">Monitoramento de conformidade com acordos de nível de serviço</div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi kpi-green"><div class="kpi-glow"></div><div class="kpi-label">Dentro do SLA</div><div class="kpi-value">4.499</div><div class="kpi-sub">59,5% dos chamados</div></div>
+        <div class="kpi kpi-red"><div class="kpi-glow"></div><div class="kpi-label">Fora do SLA</div><div class="kpi-value">3.018</div><div class="kpi-sub">39,9% dos chamados</div></div>
+        <div class="kpi kpi-yellow"><div class="kpi-glow"></div><div class="kpi-label">Sem Classificação</div><div class="kpi-value">46</div><div class="kpi-sub">em aberto/atendimento</div></div>
+        <div class="kpi kpi-blue"><div class="kpi-glow"></div><div class="kpi-label">Regras SLA</div><div class="kpi-value">4</div><div class="kpi-sub">por prioridade</div></div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="card col-8">
+          <div class="card-title"><span>📈</span> Evolução SLA Mensal (últimos 12 meses)</div>
+          <canvas id="chartSLAEvo"></canvas>
+        </div>
+        <div class="card col-4">
+          <div class="card-title"><span>⚖️</span> Conformidade SLA</div>
+          <div class="donut-wrap">
+            <canvas id="chartSLADonut" style="max-height:200px; max-width:200px;"></canvas>
+            <div class="donut-center">
+              <div class="val" style="color:#34d399">59%</div>
+              <div class="lbl">Dentro SLA</div>
+            </div>
+          </div>
+          <div class="legend" style="justify-content:center;margin-top:12px;">
+            <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div>Dentro SLA (4.499)</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Fora SLA (3.018)</div>
+          </div>
+        </div>
+        <div class="card col-12">
+          <div class="card-title"><span>📋</span> Regras de SLA Aplicadas</div>
+          <div class="info-grid">
+            <div class="info-box"><div class="info-box-label">Crítico / Crítica</div><div class="info-box-val" style="color:#ef4444">até 60 min</div></div>
+            <div class="info-box"><div class="info-box-label">Alta</div><div class="info-box-val" style="color:#f59e0b">até 120 min</div></div>
+            <div class="info-box"><div class="info-box-label">Normal / Média</div><div class="info-box-val" style="color:#60a5fa">até 240 min</div></div>
+            <div class="info-box"><div class="info-box-label">Baixa</div><div class="info-box-val" style="color:#34d399">até 480 min</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PAGE: CATEGORIAS ===== -->
+    <div class="page" id="page-categorias">
+      <div class="page-header">
+        <div class="page-title">Categorias de Chamados</div>
+        <div class="page-desc">Distribuição por tipo de serviço solicitado</div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi kpi-blue"><div class="kpi-glow"></div><div class="kpi-label">Total Categorias</div><div class="kpi-value">10+</div><div class="kpi-sub">tipos distintos</div></div>
+        <div class="kpi kpi-yellow"><div class="kpi-glow"></div><div class="kpi-label">Mais Frequente</div><div class="kpi-value">Outros</div><div class="kpi-sub">2.478 chamados</div></div>
+        <div class="kpi kpi-red"><div class="kpi-glow"></div><div class="kpi-label">2ª Mais Freq.</div><div class="kpi-value">Impressora</div><div class="kpi-sub">1.397 chamados</div></div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="card col-6">
+          <div class="card-title"><span>🍩</span> Distribuição por Categoria</div>
+          <canvas id="chartCatDonut" style="max-height:280px;"></canvas>
+        </div>
+        <div class="card col-6">
+          <div class="card-title"><span>📊</span> Ranking de Categorias</div>
+          <div class="prog-list" id="catProgList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PAGE: SCORE ===== -->
+    <div class="page" id="page-score">
+      <div class="page-header">
+        <div class="page-title">Score de Produtividade</div>
+        <div class="page-desc">Métricas de desempenho baseadas em SLA e prioridade</div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi kpi-green"><div class="kpi-glow"></div><div class="kpi-label">Score 8 (Bom)</div><div class="kpi-value">4.502</div><div class="kpi-sub">59,5% dos chamados</div></div>
+        <div class="kpi kpi-yellow"><div class="kpi-glow"></div><div class="kpi-label">Score 6 (Regular)</div><div class="kpi-value">3.052</div><div class="kpi-sub">40,4% dos chamados</div></div>
+        <div class="kpi kpi-cyan"><div class="kpi-glow"></div><div class="kpi-label">Score 10 (Excelente)</div><div class="kpi-value">9</div><div class="kpi-sub">0,1% dos chamados</div></div>
+        <div class="kpi kpi-blue"><div class="kpi-glow"></div><div class="kpi-label">Média Geral</div><div class="kpi-value">7,20</div><div class="kpi-sub">pontos</div></div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="card col-6">
+          <div class="card-title"><span>📊</span> Distribuição de Score</div>
+          <canvas id="chartScoreDist"></canvas>
+        </div>
+        <div class="card col-6">
+          <div class="card-title"><span>👤</span> Score por Técnico</div>
+          <canvas id="chartScoreTec"></canvas>
+        </div>
+        <div class="card col-12">
+          <div class="card-title"><span>📋</span> Regras de Cálculo do Score (Valor Produtividade)</div>
+          <div class="info-grid">
+            <div class="info-box"><div class="info-box-label">Dentro do SLA</div><div class="info-box-val" style="color:#34d399">× 1,2 (bônus)</div></div>
+            <div class="info-box"><div class="info-box-label">Fora do SLA</div><div class="info-box-val" style="color:#ef4444">× 0,8 (penalidade)</div></div>
+            <div class="info-box"><div class="info-box-label">Score ≥ 1,5</div><div class="info-box-val" style="color:#2dd4bf">= 10 pontos</div></div>
+            <div class="info-box"><div class="info-box-label">Score ≥ 1,2</div><div class="info-box-val" style="color:#60a5fa">= 8 pontos</div></div>
+            <div class="info-box"><div class="info-box-label">Score ≥ 0,8</div><div class="info-box-val">= 6 pontos</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PAGE: FORMULAS ===== -->
+    <div class="page" id="page-formulas">
+      <div class="page-header">
+        <div class="page-title">Fórmulas & Critérios</div>
+        <div class="page-desc">Documentação das regras aplicadas na planilha de análise</div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="card col-12">
+          <div class="card-title"><span>📐</span> Campos Calculados — Regras Aplicadas</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Campo</th><th>Coluna</th><th>Origem / Adaptação</th><th>Regra Aplicada</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="badge badge-blue">Tempo (min)</span></td>
+                  <td style="font-family:'JetBrains Mono',monospace">T</td>
+                  <td>Antiga col. M; adaptada de J/K para dados TomTicket</td>
+                  <td>Usa M (Horas Abertura→Finalização) × 60; se vazio, usa O × 60</td>
+                </tr>
+                <tr>
+                  <td><span class="badge badge-yellow">SLA</span></td>
+                  <td style="font-family:'JetBrains Mono',monospace">U</td>
+                  <td>Antiga coluna N</td>
+                  <td>Crítico ≤60min · Alta ≤120min · Normal/Média ≤240min · Baixa ≤480min</td>
+                </tr>
+                <tr>
+                  <td><span class="badge badge-green">Valor Produtividade</span></td>
+                  <td style="font-family:'JetBrains Mono',monospace">V</td>
+                  <td>Antiga coluna O</td>
+                  <td>Peso por prioridade × peso SLA: Dentro SLA = 1,2 · Fora SLA = 0,8</td>
+                </tr>
+                <tr>
+                  <td><span class="badge badge-blue">SCORE</span></td>
+                  <td style="font-family:'JetBrains Mono',monospace">W</td>
+                  <td>Antiga coluna P</td>
+                  <td>≥1,5→10 · ≥1,2→8 · ≥1,0→7 · ≥0,8→6 · ≥0,5→5 · abaixo→3</td>
+                </tr>
+                <tr>
+                  <td><span class="badge badge-red">Status Operacional</span></td>
+                  <td style="font-family:'JetBrains Mono',monospace">X</td>
+                  <td>Antiga coluna Q</td>
+                  <td>Finalização vazia/em aberto → 🔴 Em Aberto · Fora SLA → 🟡 Atrasado · caso contrário → 🟢 Concluído</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card col-12">
+          <div class="card-title"><span>⚖️</span> Redistribuição por Técnico (Meta vs Realizado)</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Técnico</th><th>Peso Gráfico (%)</th><th>Chamados Esperados</th><th>Chamados Atribuídos</th><th>% Real</th><th>Variação</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Filipe Cardoso</td><td>29,73%</td><td>2.245</td><td>2.252</td><td>29,82%</td><td><span class="badge badge-yellow">+7</span></td></tr>
+                <tr><td>Cauã</td><td>29,73%</td><td>2.245</td><td>2.243</td><td>29,70%</td><td><span class="badge badge-green">-2</span></td></tr>
+                <tr><td>Igor</td><td>15,83%</td><td>1.195</td><td>1.195</td><td>15,82%</td><td><span class="badge badge-green">0</span></td></tr>
+                <tr><td>Pedro</td><td>10,04%</td><td>758</td><td>759</td><td>10,05%</td><td><span class="badge badge-yellow">+1</span></td></tr>
+                <tr><td>Vicentina Maria de Oliveira</td><td>5,02%</td><td>379</td><td>379</td><td>5,02%</td><td><span class="badge badge-green">0</span></td></tr>
+                <tr><td>Luis</td><td>5,02%</td><td>379</td><td>376</td><td>4,98%</td><td><span class="badge badge-green">-3</span></td></tr>
+                <tr><td>Lucas</td><td>4,63%</td><td>350</td><td>348</td><td>4,61%</td><td><span class="badge badge-green">-2</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ===== DATA =====
+const MONTHLY_DATA = [
+  {mes:"2024-06",qtd:111},{mes:"2024-07",qtd:65},{mes:"2024-08",qtd:106},{mes:"2024-09",qtd:56},
+  {mes:"2024-10",qtd:48},{mes:"2024-11",qtd:51},{mes:"2024-12",qtd:35},{mes:"2025-01",qtd:204},
+  {mes:"2025-02",qtd:224},{mes:"2025-03",qtd:277},{mes:"2025-04",qtd:240},{mes:"2025-05",qtd:151},
+  {mes:"2025-06",qtd:172},{mes:"2025-07",qtd:325},{mes:"2025-08",qtd:320},{mes:"2025-09",qtd:310},
+  {mes:"2025-10",qtd:263},{mes:"2025-11",qtd:193},{mes:"2025-12",qtd:153},{mes:"2026-01",qtd:223},
+  {mes:"2026-02",qtd:234},{mes:"2026-03",qtd:306},{mes:"2026-04",qtd:264},{mes:"2026-05",qtd:55}
+];
+
+const SLA_MONTHLY = [
+  {mes:"2025-06",dentro:93,fora:79},{mes:"2025-07",dentro:213,fora:112},{mes:"2025-08",dentro:191,fora:129},
+  {mes:"2025-09",dentro:196,fora:114},{mes:"2025-10",dentro:169,fora:94},{mes:"2025-11",dentro:93,fora:100},
+  {mes:"2025-12",dentro:56,fora:97},{mes:"2026-01",dentro:92,fora:131},{mes:"2026-02",dentro:134,fora:99},
+  {mes:"2026-03",dentro:184,fora:122},{mes:"2026-04",dentro:187,fora:52},{mes:"2026-05",dentro:35,fora:0}
+];
+
+const SECRETARIAS = [
+  {nome:"Planejamento",qtd:4270,pct:56.46},{nome:"Saúde",qtd:647,pct:8.55},{nome:"Social",qtd:526,pct:6.95},
+  {nome:"Administração",qtd:511,pct:6.76},{nome:"SEMAS",qtd:411,pct:5.43},{nome:"Fazenda",qtd:251,pct:3.32},
+  {nome:"Obras",qtd:208,pct:2.75},{nome:"Governo",qtd:206,pct:2.72},{nome:"Econômico",qtd:172,pct:2.27},
+  {nome:"Educação",qtd:157,pct:2.08},{nome:"Esporte",qtd:95,pct:1.26},{nome:"Controladoria",qtd:92,pct:1.22},
+  {nome:"PROGER",qtd:17,pct:0.22}
+];
+
+const CATEGORIAS = [
+  {cat:"Outros",qtd:2478},{cat:"Impressora - Suporte",qtd:1397},{cat:"Impressora - Tonner",qtd:443},
+  {cat:"Instalação de sistemas",qtd:401},{cat:"Telefonia - suporte",qtd:392},{cat:"Acesso às pastas",qtd:392},
+  {cat:"Senha / Login - Alteração",qtd:376},{cat:"Senha / Login - Criação",qtd:324},
+  {cat:"Ponto de rede",qtd:167},{cat:"Microsoft Office",qtd:133}
+];
+
+const TECNICOS = [
+  {nome:"Filipe",total:2252,dentro:1333,fora:910,score:7.19},
+  {nome:"Cauã",total:2243,dentro:1384,fora:847,score:7.24},
+  {nome:"Igor",total:1195,dentro:687,fora:503,score:7.16},
+  {nome:"Pedro",total:759,dentro:448,fora:311,score:7.18},
+  {nome:"Vicentina",total:379,dentro:226,fora:150,score:7.20},
+  {nome:"Luis",total:376,dentro:215,fora:159,score:7.15},
+  {nome:"Lucas",total:348,dentro:206,fora:138,score:7.18}
+];
+
+const TICKETS = [
+  {p:"7633",a:"Impressora não funciona",s:"Obras",t:"—",c:"Impressora - Suporte",pr:"Baixa",st:"Aberto",sla:"—",sc:6,so:"🔴 Em Aberto"},
+  {p:"7632",a:"Tonner acabou",s:"Saúde",t:"—",c:"Impressora - Tonner",pr:"Baixa",st:"Aberto",sla:"—",sc:6,so:"🔴 Em Aberto"},
+  {p:"7631",a:"telefone e computador não ligam",s:"SEMAS",t:"—",c:"Outros",pr:"Baixa",st:"Aberto",sla:"—",sc:6,so:"🔴 Em Aberto"},
+  {p:"7630",a:"impressora",s:"Saúde",t:"Igor",c:"Impressora - Suporte",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7629",a:"Atualização BPA",s:"Saúde",t:"—",c:"Sistema",pr:"Baixa",st:"Aberto",sla:"—",sc:6,so:"🔴 Em Aberto"},
+  {p:"7628",a:"Ajustes em impressora",s:"Educação",t:"Lucas",c:"Impressora - Suporte",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7627",a:"Vazamento de água em cano sob a lage",s:"Saúde",t:"Cauã",c:"Outros",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7626",a:"Manutenção bebedouro",s:"Saúde",t:"Cauã",c:"Outros",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7625",a:"Senha do email institucional",s:"Saúde",t:"—",c:"Senha/Login - Alteração",pr:"Baixa",st:"Aberto",sla:"—",sc:6,so:"🔴 Em Aberto"},
+  {p:"7624",a:"Requisição de serviços técnicos",s:"Educação",t:"—",c:"Impressora - Suporte",pr:"Baixa",st:"Aberto",sla:"—",sc:6,so:"🔴 Em Aberto"},
+  {p:"7623",a:"Agradecimento",s:"Saúde",t:"Igor",c:"Outros",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7622",a:"Tonner REP L499",s:"Educação",t:"Filipe",c:"Impressora - Tonner",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7621",a:"Suporte técnico - Vírus",s:"Educação",t:"—",c:"Instalação de sistemas",pr:"Baixa",st:"Aberto",sla:"—",sc:6,so:"🔴 Em Aberto"},
+  {p:"7620",a:"Instalação de impressora",s:"Educação",t:"Cauã",c:"Impressora - Suporte",pr:"Baixa",st:"Em atendimento",sla:"—",sc:6,so:"🔴 Em Aberto"},
+  {p:"7619",a:"Reconfigurar scanner da impressora",s:"Educação",t:"—",c:"Impressora - Suporte",pr:"Baixa",st:"Em atendimento",sla:"—",sc:6,so:"🔴 Em Aberto"},
+  {p:"7618",a:"Telefone não funciona",s:"SEMAS",t:"—",c:"Telefonia - suporte",pr:"Baixa",st:"Aberto",sla:"—",sc:6,so:"🔴 Em Aberto"},
+  {p:"7617",a:"Criar email",s:"Administração",t:"—",c:"Outros",pr:"Baixa",st:"Aberto",sla:"—",sc:6,so:"🔴 Em Aberto"},
+  {p:"7616",a:"Resetar senha",s:"Social",t:"Igor",c:"Outros",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7615",a:"Acesso a pasta",s:"Social",t:"Filipe",c:"Outros",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7614",a:"Toner",s:"Saúde",t:"Cauã",c:"Outros",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7610",a:"Atualização do office",s:"Saúde",t:"Igor",c:"Outros",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7609",a:"Impressora e Ponto",s:"Econômico",t:"Vicentina",c:"Outros",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7608",a:"Solicitação",s:"Econômico",t:"Filipe",c:"Outros",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7607",a:"Troca de tonner",s:"Fazenda",t:"Filipe",c:"Impressora - Tonner",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7606",a:"Tonner",s:"Governo",t:"Filipe",c:"Impressora - Tonner",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7605",a:"Configurar Domínio",s:"Social",t:"Cauã",c:"Outros",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7604",a:"Configurar impressora",s:"Social",t:"Vicentina",c:"Outros",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7603",a:"Configurar Impressora",s:"Social",t:"Vicentina",c:"Outros",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7602",a:"Resetar senha",s:"Social",t:"Lucas",c:"Outros",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7601",a:"Correção PAE",s:"Obras",t:"Igor",c:"Outros",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7599",a:"Criação de email institucional",s:"Administração",t:"Filipe",c:"Outros",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7597",a:"Impressora estragada",s:"Saúde",t:"Filipe",c:"Impressora - Suporte",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7596",a:"Instalar impressora do 2º pavimento",s:"Obras",t:"Pedro",c:"Impressora - Suporte",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7594",a:"Resetar senha",s:"Saúde",t:"Filipe",c:"Sistema",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7592",a:"Manutenção bebedouro",s:"Obras",t:"Vicentina",c:"Outros",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7591",a:"Vazamento de água",s:"Obras",t:"Pedro",c:"Outros",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7590",a:"Verificação computador não liga",s:"Fazenda",t:"Pedro",c:"Outros",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7589",a:"Impressora",s:"Administração",t:"Cauã",c:"Impressora - Suporte",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7588",a:"Login",s:"Administração",t:"Igor",c:"Senha / Login - Criação",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7587",a:"Não recebimento de emails - URGENTE",s:"Saúde",t:"Filipe",c:"Outros",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7586",a:"Resetar senha de e-mail",s:"Social",t:"Filipe",c:"Outros",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7585",a:"Alteração de senha e-mail",s:"Saúde",t:"Cauã",c:"Outros",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"},
+  {p:"7584",a:"CPU não está ligando",s:"Administração",t:"Filipe",c:"Outros",pr:"Baixa",st:"Finalizada",sla:"Dentro SLA",sc:8,so:"🟢 Concluído"}
+];
+
+// ===== CHART DEFAULTS =====
+const COLORS = {
+  blue:'rgba(26,108,246,0.85)', green:'rgba(16,185,129,0.85)', yellow:'rgba(245,158,11,0.85)',
+  red:'rgba(239,68,68,0.85)', cyan:'rgba(0,212,170,0.85)', purple:'rgba(139,92,246,0.85)',
+  pink:'rgba(236,72,153,0.85)', orange:'rgba(249,115,22,0.85)'
+};
+const PALETTE = Object.values(COLORS);
+
+Chart.defaults.color = '#64748b';
+Chart.defaults.borderColor = '#1e2a42';
+Chart.defaults.font.family = 'Sora';
+Chart.defaults.font.size = 11;
+
+function baseOpts(extra={}) {
+  return {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor:'#161b2e', borderColor:'#1e2a42', borderWidth:1,
+        titleColor:'#e2e8f0', bodyColor:'#94a3b8', padding:10, cornerRadius:8
+      }
+    },
+    ...extra
+  };
+}
+
+// ===== CLOCK =====
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleDateString('pt-BR') + ' ' + now.toTimeString().slice(0,8);
+}
+setInterval(updateClock, 1000); updateClock();
+
+// ===== NAVIGATION =====
+function navigate(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+// ===== CHARTS INIT =====
+function initCharts() {
+  // Volume mensal
+  new Chart(document.getElementById('chartVolume'), {
+    type:'line',
+    data:{
+      labels: MONTHLY_DATA.map(d => d.mes.replace('-','/')),
+      datasets:[{
+        label:'Chamados', data: MONTHLY_DATA.map(d => d.qtd),
+        borderColor:'#1a6cf6', backgroundColor:'rgba(26,108,246,0.08)',
+        borderWidth:2, fill:true, tension:0.4, pointRadius:3,
+        pointBackgroundColor:'#1a6cf6', pointBorderColor:'#0a0d14'
+      }]
+    },
+    options: baseOpts({scales:{
+      x:{grid:{color:'rgba(30,42,66,0.5)'},ticks:{maxTicksLimit:12}},
+      y:{grid:{color:'rgba(30,42,66,0.5)'},beginAtZero:true}
+    }})
+  });
+
+  // Status donut
+  new Chart(document.getElementById('chartStatus'), {
+    type:'doughnut',
+    data:{
+      labels:['Concluído','Atrasado','Em Aberto'],
+      datasets:[{data:[4499,3018,46],backgroundColor:['#10b981','#f59e0b','#ef4444'],borderWidth:0,hoverOffset:6}]
+    },
+    options:{...baseOpts(),cutout:'72%',plugins:{...baseOpts().plugins,legend:{display:false}}}
+  });
+
+  // SLA mensal
+  new Chart(document.getElementById('chartSLA'), {
+    type:'bar',
+    data:{
+      labels: SLA_MONTHLY.map(d => d.mes.replace('-','/')),
+      datasets:[
+        {label:'Dentro SLA',data:SLA_MONTHLY.map(d=>d.dentro),backgroundColor:'rgba(16,185,129,0.75)',borderRadius:4},
+        {label:'Fora SLA',data:SLA_MONTHLY.map(d=>d.fora),backgroundColor:'rgba(239,68,68,0.75)',borderRadius:4}
+      ]
+    },
+    options:{...baseOpts({scales:{
+      x:{grid:{color:'rgba(30,42,66,0.5)'},stacked:false},
+      y:{grid:{color:'rgba(30,42,66,0.5)'},beginAtZero:true,stacked:false}
+    }}),plugins:{...baseOpts().plugins,legend:{display:true,labels:{color:'#94a3b8',boxWidth:12,padding:16}}}}
+  });
+
+  // Prioridade donut
+  new Chart(document.getElementById('chartPrioridade'), {
+    type:'doughnut',
+    data:{
+      labels:['Baixa','Alta','Normal'],
+      datasets:[{data:[7535,21,7],backgroundColor:['#64748b','#f59e0b','#ef4444'],borderWidth:0,hoverOffset:6}]
+    },
+    options:{...baseOpts(),cutout:'65%'}
+  });
+
+  // Secretaria bar (overview)
+  new Chart(document.getElementById('chartSecretaria'), {
+    type:'bar',
+    data:{
+      labels: SECRETARIAS.map(s=>s.nome),
+      datasets:[{label:'Chamados',data:SECRETARIAS.map(s=>s.qtd),backgroundColor:SECRETARIAS.map((_,i)=>PALETTE[i%PALETTE.length]),borderRadius:6}]
+    },
+    options:{...baseOpts({indexAxis:'y',scales:{
+      x:{grid:{color:'rgba(30,42,66,0.5)'},beginAtZero:true},
+      y:{grid:{display:false},ticks:{font:{size:10}}}
+    }})}
+  });
+
+  // Categoria bar (overview)
+  new Chart(document.getElementById('chartCategoria'), {
+    type:'bar',
+    data:{
+      labels:CATEGORIAS.map(c=>c.cat),
+      datasets:[{label:'Chamados',data:CATEGORIAS.map(c=>c.qtd),backgroundColor:CATEGORIAS.map((_,i)=>PALETTE[i%PALETTE.length]),borderRadius:6}]
+    },
+    options:{...baseOpts({indexAxis:'y',scales:{
+      x:{grid:{color:'rgba(30,42,66,0.5)'},beginAtZero:true},
+      y:{grid:{display:false},ticks:{font:{size:10}}}
+    }})}
+  });
+
+  // Técnico bar
+  new Chart(document.getElementById('chartTecnicoBar'), {
+    type:'bar',
+    data:{
+      labels:TECNICOS.map(t=>t.nome),
+      datasets:[
+        {label:'Dentro SLA',data:TECNICOS.map(t=>t.dentro),backgroundColor:'rgba(16,185,129,0.75)',borderRadius:4},
+        {label:'Fora SLA',data:TECNICOS.map(t=>t.fora),backgroundColor:'rgba(239,68,68,0.75)',borderRadius:4}
+      ]
+    },
+    options:{...baseOpts({scales:{
+      x:{grid:{display:false}},
+      y:{grid:{color:'rgba(30,42,66,0.5)'},beginAtZero:true}
+    }}),plugins:{...baseOpts().plugins,legend:{display:true,labels:{color:'#94a3b8',boxWidth:12,padding:16}}}}
+  });
+
+  // Técnico donut
+  new Chart(document.getElementById('chartTecnicoDonut'), {
+    type:'doughnut',
+    data:{
+      labels:TECNICOS.map(t=>t.nome),
+      datasets:[{data:TECNICOS.map(t=>t.total),backgroundColor:PALETTE.slice(0,7),borderWidth:0,hoverOffset:6}]
+    },
+    options:{...baseOpts(),cutout:'55%'}
+  });
+
+  // Redistribuição
+  new Chart(document.getElementById('chartRedistribuicao'), {
+    type:'bar',
+    data:{
+      labels:['Filipe','Cauã','Igor','Pedro','Vicentina','Luis','Lucas'],
+      datasets:[
+        {label:'Esperados',data:[2245,2245,1195,758,379,379,350],backgroundColor:'rgba(26,108,246,0.5)',borderRadius:4},
+        {label:'Atribuídos',data:[2252,2243,1195,759,379,376,348],backgroundColor:'rgba(0,212,170,0.7)',borderRadius:4}
+      ]
+    },
+    options:{...baseOpts({scales:{
+      x:{grid:{display:false}},
+      y:{grid:{color:'rgba(30,42,66,0.5)'},beginAtZero:true}
+    }}),plugins:{...baseOpts().plugins,legend:{display:true,labels:{color:'#94a3b8',boxWidth:12,padding:16}}}}
+  });
+
+  // Secretaria bar (page)
+  new Chart(document.getElementById('chartSecretariaBar'), {
+    type:'bar',
+    data:{
+      labels:SECRETARIAS.map(s=>s.nome),
+      datasets:[{label:'Chamados',data:SECRETARIAS.map(s=>s.qtd),backgroundColor:SECRETARIAS.map((_,i)=>PALETTE[i%PALETTE.length]),borderRadius:6}]
+    },
+    options:{...baseOpts({indexAxis:'y',scales:{
+      x:{grid:{color:'rgba(30,42,66,0.5)'},beginAtZero:true},
+      y:{grid:{display:false},ticks:{font:{size:11}}}
+    }})}
+  });
+
+  // Secretaria pie
+  new Chart(document.getElementById('chartSecretariaPie'), {
+    type:'doughnut',
+    data:{
+      labels:SECRETARIAS.map(s=>s.nome),
+      datasets:[{data:SECRETARIAS.map(s=>s.qtd),backgroundColor:SECRETARIAS.map((_,i)=>PALETTE[i%PALETTE.length]),borderWidth:0,hoverOffset:6}]
+    },
+    options:{...baseOpts(),cutout:'45%',plugins:{...baseOpts().plugins,legend:{display:true,position:'right',labels:{color:'#94a3b8',boxWidth:10,font:{size:10},padding:8}}}}
+  });
+
+  // SLA Evolution (same as SLA page)
+  new Chart(document.getElementById('chartSLAEvo'), {
+    type:'line',
+    data:{
+      labels:SLA_MONTHLY.map(d=>d.mes.replace('-','/')),
+      datasets:[
+        {label:'Dentro SLA',data:SLA_MONTHLY.map(d=>d.dentro),borderColor:'#10b981',backgroundColor:'rgba(16,185,129,0.08)',fill:true,tension:0.4,borderWidth:2},
+        {label:'Fora SLA',data:SLA_MONTHLY.map(d=>d.fora),borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,0.08)',fill:true,tension:0.4,borderWidth:2}
+      ]
+    },
+    options:{...baseOpts({scales:{
+      x:{grid:{color:'rgba(30,42,66,0.5)'}},
+      y:{grid:{color:'rgba(30,42,66,0.5)'},beginAtZero:true}
+    }}),plugins:{...baseOpts().plugins,legend:{display:true,labels:{color:'#94a3b8',boxWidth:12,padding:16}}}}
+  });
+
+  // SLA donut
+  new Chart(document.getElementById('chartSLADonut'), {
+    type:'doughnut',
+    data:{
+      labels:['Dentro SLA','Fora SLA'],
+      datasets:[{data:[4499,3018],backgroundColor:['#10b981','#ef4444'],borderWidth:0,hoverOffset:6}]
+    },
+    options:{...baseOpts(),cutout:'72%'}
+  });
+
+  // Categoria donut
+  new Chart(document.getElementById('chartCatDonut'), {
+    type:'doughnut',
+    data:{
+      labels:CATEGORIAS.map(c=>c.cat),
+      datasets:[{data:CATEGORIAS.map(c=>c.qtd),backgroundColor:CATEGORIAS.map((_,i)=>PALETTE[i%PALETTE.length]),borderWidth:0,hoverOffset:6}]
+    },
+    options:{...baseOpts(),cutout:'40%',plugins:{...baseOpts().plugins,legend:{display:true,position:'bottom',labels:{color:'#94a3b8',boxWidth:10,font:{size:10},padding:6}}}}
+  });
+
+  // Score distribution
+  new Chart(document.getElementById('chartScoreDist'), {
+    type:'bar',
+    data:{
+      labels:['Score 6 (Regular)','Score 8 (Bom)','Score 10 (Excelente)'],
+      datasets:[{data:[3052,4502,9],backgroundColor:['#f59e0b','#10b981','#2dd4bf'],borderRadius:8}]
+    },
+    options:{...baseOpts({scales:{
+      x:{grid:{display:false}},
+      y:{grid:{color:'rgba(30,42,66,0.5)'},beginAtZero:true}
+    }})}
+  });
+
+  // Score por técnico
+  new Chart(document.getElementById('chartScoreTec'), {
+    type:'bar',
+    data:{
+      labels:TECNICOS.map(t=>t.nome),
+      datasets:[{label:'Score Médio',data:TECNICOS.map(t=>t.score),backgroundColor:TECNICOS.map((_,i)=>PALETTE[i%PALETTE.length]),borderRadius:6}]
+    },
+    options:{...baseOpts({scales:{
+      x:{grid:{display:false}},
+      y:{grid:{color:'rgba(30,42,66,0.5)'},min:6.8,max:7.5}
+    }})}
+  });
+}
+
+// ===== SECRETARIA LIST =====
+function buildSecretariaList() {
+  const max = Math.max(...SECRETARIAS.map(s=>s.qtd));
+  const colors = PALETTE;
+  let html = '';
+  SECRETARIAS.forEach((s,i) => {
+    const pct = (s.qtd/max*100).toFixed(1);
+    html += `<div style="display:grid;grid-template-columns:180px 1fr 80px 80px;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(30,42,66,0.4);">
+      <span style="font-size:12px;font-weight:500">${s.nome}</span>
+      <div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${colors[i%colors.length]}"></div></div>
+      <span style="font-size:12px;font-family:'JetBrains Mono',monospace;color:#e2e8f0">${s.qtd.toLocaleString('pt-BR')}</span>
+      <span style="font-size:11px;color:#64748b">${s.pct.toFixed(1)}%</span>
+    </div>`;
+  });
+  document.getElementById('secretariaList').innerHTML = html;
+}
+
+// ===== CATEGORIA PROGRESS =====
+function buildCatList() {
+  const max = Math.max(...CATEGORIAS.map(c=>c.qtd));
+  const total = CATEGORIAS.reduce((a,c)=>a+c.qtd,0);
+  let html = '';
+  CATEGORIAS.forEach((c,i) => {
+    html += `<div class="prog-item" style="margin-bottom:10px;">
+      <div class="prog-header">
+        <span class="prog-name" style="font-size:11px">${c.cat}</span>
+        <span class="prog-val">${c.qtd.toLocaleString('pt-BR')} (${(c.qtd/total*100).toFixed(1)}%)</span>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${(c.qtd/max*100).toFixed(1)}%;background:${PALETTE[i%PALETTE.length]}"></div></div>
+    </div>`;
+  });
+  document.getElementById('catProgList').innerHTML = html;
+}
+
+// ===== TABLE =====
+let currentPage = 1;
+const PAGE_SIZE = 15;
+let filteredData = [...TICKETS];
+
+function renderTable() {
+  const start = (currentPage-1)*PAGE_SIZE;
+  const slice = filteredData.slice(start, start+PAGE_SIZE);
+  let html = '';
+  slice.forEach(t => {
+    const statusBadge = t.st === 'Finalizada' ? `<span class="badge badge-green">✅ ${t.st}</span>`
+      : t.st === 'Em atendimento' ? `<span class="badge badge-blue">🔄 ${t.st}</span>`
+      : `<span class="badge badge-red">🔴 ${t.st}</span>`;
+    const slaBadge = t.sla === 'Dentro SLA' ? `<span class="badge badge-green">✅</span>`
+      : t.sla === 'Fora SLA' ? `<span class="badge badge-red">❌</span>`
+      : `<span class="badge badge-gray">—</span>`;
+    const soClass = t.so.includes('Concluído') ? 'badge-green' : t.so.includes('Atrasado') ? 'badge-yellow' : 'badge-red';
+    html += `<tr>
+      <td style="font-family:'JetBrains Mono',monospace;color:#60a5fa">#${t.p}</td>
+      <td title="${t.a}" style="max-width:180px">${t.a}</td>
+      <td>${t.s}</td>
+      <td>${t.t}</td>
+      <td style="max-width:140px">${t.c}</td>
+      <td><span class="badge badge-gray">${t.pr}</span></td>
+      <td>${statusBadge}</td>
+      <td>${slaBadge}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-weight:700;color:${t.sc>=8?'#34d399':t.sc>=7?'#60a5fa':'#fbbf24'}">${t.sc}</td>
+      <td><span class="badge ${soClass}">${t.so}</span></td>
+    </tr>`;
+  });
+  document.getElementById('tableBody').innerHTML = html;
+  const total = filteredData.length;
+  const pages = Math.ceil(total/PAGE_SIZE);
+  document.getElementById('tableInfo').textContent = `${start+1}–${Math.min(start+PAGE_SIZE,total)} de ${total} | Pág. ${currentPage}/${pages}`;
+}
+
+function filterTable() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const st = document.getElementById('filterStatus').value;
+  const tec = document.getElementById('filterTecnico').value;
+  const sla = document.getElementById('filterSLA').value;
+  filteredData = TICKETS.filter(t => {
+    if(q && !t.a.toLowerCase().includes(q) && !t.s.toLowerCase().includes(q) && !t.c.toLowerCase().includes(q)) return false;
+    if(st && t.st !== st) return false;
+    if(tec && t.t !== tec) return false;
+    if(sla && t.sla !== sla) return false;
+    return true;
+  });
+  currentPage = 1;
+  renderTable();
+}
+
+function nextPage() {
+  const pages = Math.ceil(filteredData.length/PAGE_SIZE);
+  if(currentPage < pages) { currentPage++; renderTable(); }
+}
+function prevPage() {
+  if(currentPage > 1) { currentPage--; renderTable(); }
+}
+
+// ===== INIT =====
+initCharts();
+buildSecretariaList();
+buildCatList();
+renderTable();
+</script>
+</body>
+</html>
