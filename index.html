@@ -128,9 +128,7 @@ tbody td{padding:8px 10px;white-space:nowrap;overflow:hidden;max-width:180px;tex
     <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
   </select>
   <select class="fsel" id="fTec" onchange="go()">
-    <option value="">&#128100; Todos os t&eacute;cnicos</option>
-    <option>Filipe</option><option>Cau&atilde;</option><option>Igor</option>
-    <option>Pedro</option><option>Lucas</option><option>Luis</option><option>Vicentina</option>
+    <option value="">Todos os tecnicos</option>
   </select>
   <select class="fsel" id="fSec" onchange="go()">
     <option value="">&#127970; Todas as secretarias</option>
@@ -321,8 +319,36 @@ const MABR=['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov'
 let F={ano:'',mes:'',tec:'',sec:'',sla:''};
 let tPg=1,tSO={k:'Protocolo',d:-1},tFlt=[...TKS];
 
-function go(){F.ano=document.getElementById('fAno').value;F.mes=document.getElementById('fMes').value;F.tec=document.getElementById('fTec').value;F.sec=document.getElementById('fSec').value;F.sla=document.getElementById('fSLA').value;upAll();}
-function clrF(){['fAno','fMes','fTec','fSec','fSLA'].forEach(id=>document.getElementById(id).value='');F={ano:'',mes:'',tec:'',sec:'',sla:''};upAll();}
+function updateTecFilter(){
+  var sel=document.getElementById('fTec');
+  var current=sel.value;
+  var allTecs=Object.keys(TEC_MES).filter(function(n){return n!=='DTI';});
+  allTecs.sort(function(a,b){
+    var ta=Object.values(TEC_MES[a]||{}).reduce(function(x,y){return x+y;},0);
+    var tb=Object.values(TEC_MES[b]||{}).reduce(function(x,y){return x+y;},0);
+    return tb-ta;
+  });
+  allTecs.push('DTI');
+  var ano=document.getElementById('fAno').value;
+  var mes=document.getElementById('fMes').value;
+  var filterActive=ano||mes;
+  var available=filterActive
+    ? allTecs.filter(function(n){return getTec(n)>0;})
+    : allTecs;
+  sel.innerHTML='<option value="">Todos os técnicos</option>';
+  available.forEach(function(n){
+    var opt=document.createElement('option');
+    opt.value=n;opt.textContent=n;
+    sel.appendChild(opt);
+  });
+  if(current&&available.indexOf(current)>=0){
+    sel.value=current;
+  } else if(current){
+    sel.value='';F.tec='';
+  }
+}
+function go(){F.ano=document.getElementById('fAno').value;F.mes=document.getElementById('fMes').value;F.sec=document.getElementById('fSec').value;F.sla=document.getElementById('fSLA').value;updateTecFilter();F.tec=document.getElementById('fTec').value;upAll();}
+function clrF(){['fAno','fMes','fSec','fSLA'].forEach(function(id){document.getElementById(id).value='';});F={ano:'',mes:'',tec:'',sec:'',sla:''};updateTecFilter();document.getElementById('fTec').value='';upAll();}
 
 function getMon(){return Object.entries(MR).filter(([k])=>{const[y,m]=k.split('-');if(F.ano&&y!==F.ano)return false;if(F.mes&&parseInt(m)!==parseInt(F.mes))return false;return true;});}
 function getSLAMon(){return Object.entries(SLAR).filter(([k])=>{const[y,m]=k.split('-');if(F.ano&&y!==F.ano)return false;if(F.mes&&parseInt(m)!==parseInt(F.mes))return false;return true;});}
@@ -582,6 +608,7 @@ function nav(pg,el){
 mk('cPrior','doughnut',{labels:['Baixa','Alta','Normal'],datasets:[{data:[7566,21,7],backgroundColor:['#64748b','#f59e0b','#ef4444'],borderWidth:0,hoverOffset:5}]},{...bO(),cutout:'65%'});
 document.getElementById('prLeg').innerHTML='<div class="li"><div class="ld" style="background:#64748b"></div>Baixa (7.566)</div><div class="li"><div class="ld" style="background:#f59e0b"></div>Alta (21)</div><div class="li"><div class="ld" style="background:#ef4444"></div>Normal (7)</div>';
 
+updateTecFilter();
 setInterval(()=>{const n=new Date();document.getElementById('clk').textContent=n.toLocaleDateString('pt-BR')+' '+n.toTimeString().slice(0,8);},1000);
 upAll();
 </script>
